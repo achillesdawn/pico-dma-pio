@@ -67,3 +67,4 @@ target_link_libraries(dma-pio
 
 pico_add_extra_outputs(dma-pio)
 
+target_link_options(${PROJECT_NAME} PRIVATE "-Wl,--print-memory-usage")

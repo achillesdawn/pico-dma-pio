@@ -4,10 +4,8 @@
 ; SPDX-License-Identifier: BSD-3-Clause
 ;
 
-; SET pin 0 should be mapped to your LED GPIO
-
 .program blink
 .wrap_target
-    pull block    ; from the tx fifo to the OSR
-    out pins, 8  
+    pull block
+    out pins, 32  [31]
 .wrap             

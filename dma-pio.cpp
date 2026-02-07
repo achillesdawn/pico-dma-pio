@@ -30,7 +30,8 @@ constexpr uint32_t create_pin_mask() {
     return ((1u << Pins) | ...);
 }
 
-constexpr uint32_t GPIO_MASK = create_pin_mask<8, 9, 10, 11, 12, 13, 14, 15>();
+constexpr uint32_t GPIO_MASK =
+    create_pin_mask<8, 9, 10, 11, 12, 13, 14, 15>();
 
 void blink_init(PIO pio, uint sm, uint offset) {
 
@@ -46,10 +47,12 @@ void blink_init(PIO pio, uint sm, uint offset) {
     // set pin direction
     pio_sm_set_consecutive_pindirs(pio, sm, PIN_8, 8, true);
 
-    pio_sm_config config = blink_program_get_default_config(offset);
+    pio_sm_config config =
+        blink_program_get_default_config(offset);
 
     // set pins
     sm_config_set_out_pins(&config, PIN_8, 8);
+    // sm_config_set_out_shift(&config, false, true, 32);
 
     pio_sm_init(pio, sm, offset, &config);
 
@@ -62,9 +65,39 @@ void blink_init(PIO pio, uint sm, uint offset) {
 }
 
 int64_t alarm_callback(alarm_id_t id, void *user_data) {
-    printf("alarm");
+    printf("alarm\n");
 
     return 1'000'000;
+}
+
+int setup_pio_dma(PIO pio, int sm, uint32_t *read_addr) {
+
+    int dma_chan = dma_claim_unused_channel(true);
+
+    dma_channel_config config =
+        dma_channel_get_default_config(dma_chan);
+
+    // tx fifo is 32 bits
+    channel_config_set_transfer_data_size(
+        &config, DMA_SIZE_32
+    );
+    channel_config_set_write_increment(&config, false);
+    channel_config_set_read_increment(&config, false);
+
+    channel_config_set_dreq(
+        &config, pio_get_dreq(pio, sm, true)
+    );
+
+    dma_channel_configure(
+        dma_chan,
+        &config,
+        &pio->txf[sm],
+        read_addr,
+        100,
+        true
+    );
+
+    return dma_chan;
 }
 
 void restart() {
@@ -91,14 +124,18 @@ int main() {
 
     blink_init(pio, sm, offset);
 
+    uint32_t data_src = 2;
+
+    int dma_chan = setup_pio_dma(pio, sm, &data_src);
+
     while (true) {
-        for (u8 i = 0; i < 255; i++) {
 
-            printf("sm: %d\n", i);
+        data_src += 1;
 
-            pio_sm_put_blocking(pio, sm, i);
+        dma_channel_set_transfer_count(
+            dma_chan, 100, false
+        );
 
-            sleep_ms(500);
-        }
+        sleep_ms(500);
     }
 }
