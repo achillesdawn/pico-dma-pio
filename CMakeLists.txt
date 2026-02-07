@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(dma-pio dma-pio.cpp )
+add_executable(dma-pio dma-pio.cpp pio_dma.cpp)
 
 pico_set_program_name(dma-pio "dma-pio")
 pico_set_program_version(dma-pio "0.1")

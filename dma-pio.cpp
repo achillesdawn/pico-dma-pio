@@ -4,6 +4,7 @@
 #include "hardware/timer.h"
 #include "hardware/watchdog.h"
 #include "pico/stdlib.h"
+#include <array>
 #include <bitset>
 #include <cstdint>
 #include <ctime>
@@ -13,6 +14,8 @@
 #include <stdio.h>
 
 #include "blink.pio.h"
+
+#include "pio_dma.hpp"
 
 using u8 = uint8_t;
 
@@ -71,69 +74,6 @@ int64_t alarm_callback(alarm_id_t id, void *user_data) {
     return 1'000'000;
 }
 
-// the problem is dma channels have a transfer count, when
-// the transfer count hits 0 it stops transfering even if
-// there are dreq this is being solved by chaining two
-// channels one to the end of the other config channel in
-// this case does nothing but establish the chain so that
-// the main channel gets restarted
-int setup_pio_dma(PIO pio, int sm, uint32_t *read_addr) {
-
-    int dma_ch = dma_claim_unused_channel(true);
-    int control_ch = dma_claim_unused_channel(true);
-
-    dma_channel_config dma_ch_config =
-        dma_channel_get_default_config(dma_ch);
-
-    dma_channel_config control_ch_config =
-        dma_channel_get_default_config(control_ch);
-
-    // tx fifo is 32 bits
-    channel_config_set_transfer_data_size(
-        &dma_ch_config, DMA_SIZE_32
-    );
-    channel_config_set_transfer_data_size(
-        &control_ch_config, DMA_SIZE_32
-    );
-
-    channel_config_set_write_increment(
-        &dma_ch_config, false
-    );
-    channel_config_set_write_increment(
-        &control_ch_config, false
-    );
-
-    channel_config_set_read_increment(
-        &dma_ch_config, false
-    );
-    channel_config_set_read_increment(
-        &control_ch_config, false
-    );
-
-    channel_config_set_dreq(
-        &dma_ch_config, pio_get_dreq(pio, sm, true)
-    );
-
-    channel_config_set_chain_to(&dma_ch_config, control_ch);
-    channel_config_set_chain_to(&control_ch_config, dma_ch);
-
-    dma_channel_configure(
-        dma_ch,
-        &dma_ch_config,
-        &pio->txf[sm],
-        read_addr,
-        100,
-        true
-    );
-
-    dma_channel_configure(
-        control_ch, &control_ch_config, NULL, NULL, 1, false
-
-    );
-
-    return dma_ch;
-}
-
 void restart() {
     watchdog_reboot(0, 0, 200);
     busy_wait_ms(200);
@@ -158,13 +98,16 @@ int main() {
 
     blink_init(pio, sm, offset);
 
-    uint32_t data_src = 2;
+    uint32_t data_src = 0;
 
-    int dma_chan = setup_pio_dma(pio, sm, &data_src);
+    int dma_chan =
+        setup_pio_dma_two_channels(pio, sm, &data_src);
 
     while (true) {
 
         data_src += 1;
+
+        printf("%d\n", data_src);
 
         uint32_t count =
             dma_hw->ch[dma_chan].transfer_count;
