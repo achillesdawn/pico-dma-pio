@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Initialise pico_sdk from installed location
@@ -17,7 +17,7 @@ else()
 endif()
 set(sdkVersion 2.2.0)
 set(toolchainVersion 14_2_Rel1)
-set(picotoolVersion 2.2.0-a4)
+set(picotoolVersion 2.2.0)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
@@ -62,6 +62,7 @@ target_link_libraries(dma-pio
         hardware_pio
         hardware_timer
         hardware_watchdog
+        hardware_clocks
         )
 
 pico_add_extra_outputs(dma-pio)
