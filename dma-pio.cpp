@@ -63,9 +63,6 @@ void blink_init(PIO pio, uint sm, uint offset) {
     pio_sm_set_enabled(pio, sm, true);
 
     printf("Blinkin program start");
-
-    // set divisor to 48mhz/2^16
-    pio->sm[sm].clkdiv = 0xFFFF0000;
 }
 
 int64_t alarm_callback(alarm_id_t id, void *user_data) {

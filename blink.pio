@@ -5,7 +5,14 @@
 ;
 
 .program blink
+.clock_div 65535.0  ; clock divisor can be set with a directive
+.pio_version 0
+
 .wrap_target
     pull block
-    out pins, 32  [31]
+    out pins, 32 
+    set x, 11
+wait_loop:
+    jmp x-- wait_loop [31]
+
 .wrap             
